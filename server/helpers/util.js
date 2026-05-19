@@ -1,5 +1,6 @@
 const crypto=require('crypto')
 const jwt = require('jsonwebtoken');
+const cloudinary = require("../configs/cloudinaryConfig");
 
 
 function validateEmail(email){
@@ -32,4 +33,23 @@ const generateRefreshToken=()=>{
     
 }
 
-module.exports ={validateEmail,genertaeOTp,generateAccessToken,generateRefreshToken}
+const uploadToCloudinary = async ({ mimetype, imgBuffer }) => {
+  const dataUrl = `data:${mimetype};base64,${imgBuffer.toString("base64")}`;
+
+  const res = await cloudinary.uploader.upload(dataUrl);
+
+  return res.secure_url;
+};
+
+const destroyFromCloudinary = (url) => {
+  const publicId = url.split("/").pop().split(".").shift();
+
+  cloudinary.uploader.destroy(publicId, (error, result) => {
+    if (error) {
+      console.log("Destroy From Cloudinary:", error);
+    }
+  });
+};
+
+
+module.exports ={validateEmail,genertaeOTp,generateAccessToken,generateRefreshToken,uploadToCloudinary, destroyFromCloudinary}
