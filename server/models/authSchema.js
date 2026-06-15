@@ -34,6 +34,13 @@ const userSchema= new Schema({
     otpexpiry:{
         type:Date,
     },
+     resetToekn:{
+        type:String,
+        default:null,
+    },
+    resetToeknexpiry:{
+        type:Date,
+    },
     role:{
        type:String,
        required:true,

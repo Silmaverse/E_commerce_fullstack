@@ -7,6 +7,8 @@ const {
   generateRefreshToken,
   uploadToCloudinary,
   destroyFromCloudinary,
+  generateResetPassToken,
+  hashResetToken,
 } = require("../helpers/util");
 const userschema = require("../models/authSchema");
 
@@ -93,6 +95,54 @@ const resendOTP = async (req, res) => {
     res.status(500).send({ message: "Internal server error" });
   }
 };
+
+const forgetpass=async(req,res)=>{
+  try{
+
+    const {email}=req.body 
+    if(!email) return res.status(400).send({msg:"Email is required"});
+    if(!validateEmail) return res.status(400).send({msg:"Email is not valid"});
+    const existemail=await userschema.findOne({email});
+    if(!existemail) return res.status(400).send({msg:"Invalid email"});
+    const {resetToken,hasedToken}=generateResetPassToken();
+    existemail.resetToekn=hasedToken;
+    existemail.resetToeknexpiry=Date.now()+2*60*1000;
+    const reseturl=`${process.env.CLient_URl|| "https://localhost:8000"}/reset-password/${resetToken}`
+    mailSender({
+      email,
+      subject:"Reset Password",
+      template:OTPMailTemp(reseturl),
+    });
+
+   res.status(200).send({msg:"Check your email for new password"})
+  }catch(error){
+    console.log(error)
+    res.status(500).send({msg:"Internal server error"});
+  }
+}
+const resetPassword=async(req,res)=>{
+  try{
+    const {newpass}=req.body;
+    const {token}=req.body;
+    if(!newpass) return res.status(200).send({message:"Password is required"});
+    if(!token) return res.status(200).send({message:"Invalid request"});
+    const generatehashedToken=hashResetToken(token);
+    const userData=await userschema.findOne({
+      resetToekn:generatehashedToken,
+      resetToeknexpiry:{$gt:Date.now()},
+    });
+
+    if(!userData) return res.status(400).send({message:"Invalid request"});
+    userdata.passowrd=newpass;
+    userData.resetToekn=null;
+    userData.resetToeknexpiry=null;
+    userData.save();
+    res.status(200).send({message:"Password updated successfully"});
+  }catch(error){
+    console.log(error);
+    return res.status(500).send({message:"Interval Server Error"});
+  }
+}
 
 const cookie_config = {
   httpOnly: false,
@@ -203,4 +253,4 @@ const userList = async (req, res) => {
   } catch (error) {}
 };
 
-module.exports = { signup,verifyOtp,resendOTP,signin,getProfile,updateProfile ,userList};
+module.exports = { signup,verifyOtp,resendOTP,signin,getProfile,updateProfile ,userList,forgetpass,resetPassword};
